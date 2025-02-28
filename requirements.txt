@@ -1,5 +1,5 @@
 openai
-ptyhon-dotenv
+python-dotenv
 qdrant-client
 streamlit
 streamlit-audiorecorder
