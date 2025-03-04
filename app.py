@@ -1,4 +1,5 @@
 from hashlib import md5
+import uuid
 import streamlit as st
 from streamlit import session_state as ss, toast
 from io import BytesIO
@@ -74,14 +75,14 @@ def get_embedding(text):
 
 def add_note_to_db(note_text):
     qdrant_client = get_qdrant_client()
-    
-    print("Dodaję notatkę z ID:", ss["id_counter"] + 1)
+    point_uuid = str(uuid.uuid4())
+    print("Dodaję notatkę z ID: ", point_uuid)
 
     qdrant_client.upsert(
         collection_name = QDRANT_COLLECTION_NAME,
         points = [
             PointStruct(
-                id = ss['id_counter'] + 1,
+                id = point_uuid,
                 vector = get_embedding(note_text),
                 payload = {
                     "text" : note_text
@@ -89,7 +90,6 @@ def add_note_to_db(note_text):
             )
         ]   
     )
-    ss["id_counter"] += 1
 
 def list_notes_from_db(query = None):
     qdrant_client = get_qdrant_client()
@@ -174,9 +174,6 @@ if "note_text" not in ss:
 if "note_audio_text" not in ss:
     ss["note_audio_text"] = ""
 
-if "id_counter" not in ss:
-    ss["id_counter"] = 0
-
 st.title("Audio Notes")
 
 assure_db_collection_sxists()
@@ -238,6 +235,5 @@ with delete_tab:
         if st.button("Tak", use_container_width=True):
             remove_all_notes_from_db()
             st.toast("Usunięto wszystkie notatki", icon = ":material/delete:")
-            ss["id_counter"] = 0
             print("Czyścimy !!!")
     
