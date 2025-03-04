@@ -216,7 +216,7 @@ with search_tab:
         for note in notes:
             with st.container(border = True):
                 st.markdown(note["text"])
-                col0, col1 = st.columns([8, 1])
+                col0, col1 = st.columns([7, 1])
                 print(note)
                 with col0:
                     if note["score"]:
