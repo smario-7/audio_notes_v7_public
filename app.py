@@ -154,7 +154,7 @@ if not ss.get("openai_api_key"):
         ss["openai_api_key"] = env["OPENAI_API_KEY"]
     else:
         st.info("Podaj swój klucz API OpenAI aby móc korzystac z tej aplikacji")
-        ss["openai_api_key"] = st.text_input("Klucz API")
+        ss["openai_api_key"] = st.text_input("Klucz API", type = "password")
         if ss["openai_api_key"]:
             st.rerun()
 
