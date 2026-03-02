@@ -88,13 +88,13 @@ def list_notes_from_db(query = None):
         return result
 
     else:
-        notes = qdrant_client.search(
+        notes = qdrant_client.query_points(
             collection_name = QDRANT_COLLECTION_NAME,
-            query_vector = get_embedding(query),
+            query = get_embedding(query),
             limit = 10
         )
         result = []
-        for note in notes:
+        for note in response.points:
             result.append({
                 "id": note.id,
                 "text": note.payload["text"],
