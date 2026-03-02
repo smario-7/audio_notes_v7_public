@@ -136,7 +136,7 @@ if not ss.get("openai_api_key"):
         ss["openai_api_key"] = env["OPENAI_API_KEY"]
     else:
         st.info("Podaj swój klucz API OpenAI aby móc korzystac z tej aplikacji")
-        ss["openai_api_key"] = st.text_input("Klucz API", type = "password")
+        ss["openai_api_key"] = st.text_input("Klucz API od OpenAI", type = "password")
         if ss["openai_api_key"]:
             st.rerun()
 
@@ -220,8 +220,18 @@ with search_tab:
                         st.toast("Usunięto notatkę", icon = ":material/delete:")
                         # st.rerun()
 with delete_tab:
+    notes = list_notes_from_db(limit=100)
+    for note in notes:
+        col1, col2 = st.columns([7, 1])
+        with col1:
+            st.markdown(note["text"])
+        with col2:
+            if st.button("Usuń", key=f"del_{note['id']}", use_container_width=True):
+                remove_note_from_db(note["id"])
+                st.toast("Usunięto notatkę", icon=":material/delete:")
+                st.rerun()
     with st.popover("Usuń wszystkie notatki"):
         if st.button("Tak", use_container_width=True):
             remove_all_notes_from_db()
-            st.toast("Usunięto wszystkie notatki", icon = ":material/delete:")
+            st.toast("Usunięto wszystkie notatki", icon=":material/delete:")
     
