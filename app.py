@@ -94,7 +94,7 @@ def list_notes_from_db(query = None):
             limit = 10
         )
         result = []
-        for note in response.points:
+        for note in notes.points:
             result.append({
                 "id": note.id,
                 "text": note.payload["text"],
