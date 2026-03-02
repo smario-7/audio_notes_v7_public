@@ -3,41 +3,10 @@ Moduł do obsługi połączenia z bazą Qdrant z obsługą błędów i UI Stream
 """
 import streamlit as st
 from qdrant_client import QdrantClient
-from qdrant_client.http import models
 from qdrant_client.http.exceptions import ApiException
 import logging
 
 logger = logging.getLogger(__name__)
-
-COLLECTION_NAME = "AudioNotes"
-EMBEDDING_DIM = 3072
-
-
-def ensure_audio_notes_collection(client: QdrantClient) -> bool:
-    """
-    Sprawdza czy kolekcja AudioNotes istnieje. Jeśli nie - tworzy ją.
-    Zwraca True jeśli kolekcja jest gotowa do użycia.
-    """
-    try:
-        collections = client.get_collections().collections
-        collection_names = [c.name for c in collections]
-        
-        if COLLECTION_NAME not in collection_names:
-            from qdrant_client.models import Distance, VectorParams
-            client.create_collection(
-                collection_name=COLLECTION_NAME,
-                vectors_config=VectorParams(
-                    size=EMBEDDING_DIM,
-                    distance=Distance.COSINE
-                )
-            )
-            logger.info(f"Utworzono kolekcję '{COLLECTION_NAME}'")
-            return True
-        
-        return True  # kolekcja już istnieje
-    except Exception as e:
-        logger.error(f"Błąd inicjalizacji kolekcji: {e}")
-        return False
 
 
 def load_qdrant_credentials():
@@ -106,18 +75,14 @@ def display_qdrant_config_form():
     Wyświetla formularz do konfiguracji Qdrant
     """
     st.subheader("Konfiguracja Qdrant")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
+
+    with st.form("qdrant_config_form"):
         qdrant_url = st.text_input(
             "QDRANT_URL",
             value=st.session_state.get("qdrant_url", ""),
             placeholder="http://localhost:6333",
             help="Adres URL serwera Qdrant"
         )
-    
-    with col2:
         qdrant_api_key = st.text_input(
             "QDRANT_API_KEY",
             value=st.session_state.get("qdrant_api_key", ""),
@@ -125,19 +90,22 @@ def display_qdrant_config_form():
             placeholder="Wpisz swój klucz API",
             help="Klucz API do autoryzacji w Qdrant"
         )
-    
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        if st.button("🔗 Testuj połączenie", use_container_width=True):
-            if not qdrant_url or not qdrant_api_key:
-                st.error("❌ Proszę uzupełnić oba pola!")
-                return None
-            
+        col1, col2 = st.columns(2)
+        with col1:
+            submitted = st.form_submit_button("🔗 Testuj połączenie")
+        with col2:
+            clear_clicked = st.form_submit_button("🔄 Wyczyść dane")
+
+    if submitted:
+        url = qdrant_url.strip()
+        key = qdrant_api_key.strip()
+        if not url or not key:
+            st.error("❌ Proszę uzupełnić oba pola!")
+        else:
             with st.spinner("Testowanie połączenia..."):
-                if test_qdrant_connection(qdrant_url, qdrant_api_key):
-                    st.session_state.qdrant_url = qdrant_url
-                    st.session_state.qdrant_api_key = qdrant_api_key
+                if test_qdrant_connection(url, key):
+                    st.session_state.qdrant_url = url
+                    st.session_state.qdrant_api_key = key
                     st.session_state.qdrant_connected = True
                     st.success("✅ Pomyślnie połączono z Qdrant!")
                     st.rerun()
@@ -148,16 +116,13 @@ def display_qdrant_config_form():
                         "- Czy serwer Qdrant jest dostępny?\n"
                         "- Czy klucz API jest prawidłowy?"
                     )
-    
-    with col2:
-        if st.button("🔄 Wyczyść dane", use_container_width=True):
-            st.session_state.qdrant_url = ""
-            st.session_state.qdrant_api_key = ""
-            st.session_state.qdrant_connected = False
-            st.info("Dane zostały wyczyszczone")
-            st.rerun()
-    
-    return qdrant_url, qdrant_api_key
+
+    if clear_clicked:
+        st.session_state.qdrant_url = ""
+        st.session_state.qdrant_api_key = ""
+        st.session_state.qdrant_connected = False
+        st.info("Dane zostały wyczyszczone")
+        st.rerun()
 
 
 def initialize_qdrant():
@@ -179,16 +144,11 @@ def initialize_qdrant():
     qdrant_url, qdrant_api_key = load_qdrant_credentials()
     
     if qdrant_url and qdrant_api_key:
-        # Spróbuj się połączyć
         if test_qdrant_connection(qdrant_url, qdrant_api_key):
             st.session_state.qdrant_url = qdrant_url
             st.session_state.qdrant_api_key = qdrant_api_key
             st.session_state.qdrant_connected = True
-            client = QdrantClient(url=qdrant_url, api_key=qdrant_api_key)            
-            if not ensure_audio_notes_collection(client):                
-                return None            
-            return client
-            
+            return QdrantClient(url=qdrant_url, api_key=qdrant_api_key)
         else:
             # Błąd połączenia - wyświetl formularz
             display_qdrant_error_message()

@@ -17,7 +17,7 @@ EMBEDDING_DIM = 3072
 
 AUDIO_TRANSCRIBE_MODEL = "whisper-1"
 
-QDRANT_COLLECTION_NAME = "notes"
+QDRANT_COLLECTION_NAME = "AudioNotes"
 
 def get_openai_client():
     return OpenAI(api_key = ss["openai_api_key"])
@@ -37,19 +37,16 @@ def transcribe_audio(audio_bytes):
 # DB
 #
 
-def assure_db_collection_sxists():
+def assure_db_collection_exists():
     qdrant_client = get_qdrant_client()
     if not qdrant_client.collection_exists(QDRANT_COLLECTION_NAME):
-        print("Tworzę kolekcję")
         qdrant_client.create_collection(
-            collection_name = QDRANT_COLLECTION_NAME,
-            vectors_config = VectorParams(
-                size = EMBEDDING_DIM,
-                distance = Distance.COSINE
+            collection_name=QDRANT_COLLECTION_NAME,
+            vectors_config=VectorParams(
+                size=EMBEDDING_DIM,
+                distance=Distance.COSINE
             )
         )
-    else:
-        print("Kolecja już istenieje")
 
 def get_embedding(text):
     openai_client = get_openai_client()
@@ -64,8 +61,6 @@ def get_embedding(text):
 def add_note_to_db(note_text):
     qdrant_client = get_qdrant_client()
     point_uuid = str(uuid.uuid4())
-    print("Dodaję notatkę z ID: ", point_uuid)
-
     qdrant_client.upsert(
         collection_name = QDRANT_COLLECTION_NAME,
         points = [
@@ -117,7 +112,6 @@ def remove_note_from_db(note_id):
         collection_name=QDRANT_COLLECTION_NAME,
         points_selector=[note_id]
     )
-    print(f"Note with ID {note_id} deleted.")
 
 def remove_all_notes_from_db():
     qdrant_client = get_qdrant_client()
@@ -172,7 +166,7 @@ if qdrant_client is None:
     )
     st.stop()
 
-assure_db_collection_sxists()
+assure_db_collection_exists()
 
 add_tab, search_tab, delete_tab= st.tabs(["Dodaj notatkę", "Wyszukaj notatkę", "Czyszczenie bazy"])
 
@@ -213,7 +207,6 @@ with search_tab:
             with st.container(border = True):
                 st.markdown(note["text"])
                 col0, col1 = st.columns([7, 1])
-                print(note)
                 with col0:
                     if note["score"]:
                         st.markdown(f":violet[{note['score']}]")
@@ -224,12 +217,11 @@ with search_tab:
                         on_click=remove_note_from_db, 
                         args=(note["id"],)
                         ):
-                        st,toast("Usuięto notatkę", icon = ":material/delete:")
+                        st.toast("Usunięto notatkę", icon = ":material/delete:")
                         # st.rerun()
 with delete_tab:
     with st.popover("Usuń wszystkie notatki"):
         if st.button("Tak", use_container_width=True):
             remove_all_notes_from_db()
             st.toast("Usunięto wszystkie notatki", icon = ":material/delete:")
-            print("Czyścimy !!!")
     
