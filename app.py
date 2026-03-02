@@ -6,15 +6,10 @@ from io import BytesIO
 from audiorecorder import audiorecorder
 from dotenv import dotenv_values
 from openai import OpenAI
-from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, Distance, VectorParams
+from qdrant_connection import initialize_qdrant, get_qdrant_client
 
 env = dotenv_values(".env")
-
-if "QDRANT_URL" in st.secrets:
-    env["QDRANT_URL"] = st.secrets["QDRANT_URL"]
-if "QDRANT_API_KEY" in st.secrets:
-    env["QDRANT_API_KEY"] = st.secrets["QDRANT_API_KEY"]
 
 EMBEDDING_MODEL = "text-embedding-3-large"
 
@@ -41,13 +36,6 @@ def transcribe_audio(audio_bytes):
 #
 # DB
 #
-
-@st.cache_resource
-def get_qdrant_client():
-    return QdrantClient(
-        url=env["QDRANT_URL"], 
-        api_key=env["QDRANT_API_KEY"],
-    )
 
 def assure_db_collection_sxists():
     qdrant_client = get_qdrant_client()
@@ -175,6 +163,14 @@ if "note_audio_text" not in ss:
     ss["note_audio_text"] = ""
 
 st.title("Audio Notes")
+
+qdrant_client = initialize_qdrant()
+if qdrant_client is None:
+    st.error(
+        "❌ Aplikacja wymaga połączenia z bazą Qdrant\n\n"
+        "Proszę skonfiguruj poświadczenia w formularzu powyżej"
+    )
+    st.stop()
 
 assure_db_collection_sxists()
 
