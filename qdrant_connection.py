@@ -9,6 +9,36 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+COLLECTION_NAME = "AudioNotes"
+EMBEDDING_DIM = 3072
+
+
+def ensure_audio_notes_collection(client: QdrantClient) -> bool:
+    """
+    Sprawdza czy kolekcja AudioNotes istnieje. Jeśli nie - tworzy ją.
+    Zwraca True jeśli kolekcja jest gotowa do użycia.
+    """
+    try:
+        collections = client.get_collections().collections
+        collection_names = [c.name for c in collections]
+        
+        if COLLECTION_NAME not in collection_names:
+            from qdrant_client.models import Distance, VectorParams
+            client.create_collection(
+                collection_name=COLLECTION_NAME,
+                vectors_config=VectorParams(
+                    size=EMBEDDING_DIM,
+                    distance=Distance.COSINE
+                )
+            )
+            logger.info(f"Utworzono kolekcję '{COLLECTION_NAME}'")
+            return True
+        
+        return True  # kolekcja już istnieje
+    except Exception as e:
+        logger.error(f"Błąd inicjalizacji kolekcji: {e}")
+        return False
+
 
 def load_qdrant_credentials():
     """
@@ -154,10 +184,11 @@ def initialize_qdrant():
             st.session_state.qdrant_url = qdrant_url
             st.session_state.qdrant_api_key = qdrant_api_key
             st.session_state.qdrant_connected = True
-            return QdrantClient(
-                url=qdrant_url,
-                api_key=qdrant_api_key
-            )
+            client = QdrantClient(url=qdrant_url, api_key=qdrant_api_key)            
+            if not ensure_audio_notes_collection(client):                
+                return None            
+            return client
+            
         else:
             # Błąd połączenia - wyświetl formularz
             display_qdrant_error_message()
