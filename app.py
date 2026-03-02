@@ -220,7 +220,7 @@ with search_tab:
                         st.toast("Usunięto notatkę", icon = ":material/delete:")
                         # st.rerun()
 with delete_tab:
-    notes = list_notes_from_db(limit=100)
+    notes = list_notes_from_db()
     for note in notes:
         col1, col2 = st.columns([7, 1])
         with col1:
